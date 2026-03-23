@@ -1,0 +1,35 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # ── Style ──────────────────────────────────────────────────────────────────
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
+    use_decorated_box: true
+
+    # ── Safety ─────────────────────────────────────────────────────────────────
+    avoid_print: true
+    avoid_dynamic_calls: true
+    always_declare_return_types: true
+    cancel_subscriptions: true
+    close_sinks: true
+
+    # ── Imports ────────────────────────────────────────────────────────────────
+    directives_ordering: true
+    avoid_relative_lib_imports: false  # relative imports allowed within lib/
+
+    # ── Naming ─────────────────────────────────────────────────────────────────
+    file_names: true
+
+analyzer:
+  errors:
+    missing_required_param: error
+    missing_return: error
+    dead_code: warning
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
