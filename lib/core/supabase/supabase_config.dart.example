@@ -1,0 +1,8 @@
+// ignore_for_file: constant_identifier_names
+
+/// Template for Supabase project credentials.
+/// Copy this to lib/core/supabase/supabase_config.dart and fill in your keys.
+abstract class SupabaseConfig {
+  static const supabaseUrl  = 'https://your-project-id.supabase.co';
+  static const supabaseAnonKey = 'your-anon-public-key';
+}

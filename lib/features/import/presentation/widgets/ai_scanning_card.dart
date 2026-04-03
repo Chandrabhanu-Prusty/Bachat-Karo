@@ -10,8 +10,9 @@ import '../../../../core/utils/formatters.dart';
 
 class AiScanningCard extends StatelessWidget {
   final bool isScanning;
+  final String? message;
 
-  const AiScanningCard({super.key, required this.isScanning});
+  const AiScanningCard({super.key, required this.isScanning, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +30,9 @@ class AiScanningCard extends StatelessWidget {
               const Icon(Icons.auto_awesome, color: AppColors.textOnDark, size: 18),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                isScanning ? 'AI Scanning...' : 'AI Ready',
+                isScanning 
+                    ? (message ?? 'AI Scanning...') 
+                    : (message ?? 'AI Ready'),
                 style: AppTextStyles.headingSmall.copyWith(
                   color: AppColors.textOnDark,
                 ),

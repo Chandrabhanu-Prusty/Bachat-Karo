@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Supabase and AI secrets
+.env
+supabase/.temp/
+lib/core/supabase/supabase_config.dart

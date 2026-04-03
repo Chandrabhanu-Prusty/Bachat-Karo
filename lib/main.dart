@@ -8,6 +8,8 @@ import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/screens/auth_gate.dart';
 import 'features/expense/data/expense_repository.dart';
 import 'features/account/data/user_repository.dart';
+import 'features/import/data/import_repository.dart';
+import 'features/insights/data/insights_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +29,11 @@ Future<void> main() async {
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppState(
-        authRepo:    AuthRepository(client),
-        expenseRepo: ExpenseRepository(client),
-        userRepo:    UserRepository(client),
+        authRepo:     AuthRepository(client),
+        expenseRepo:  ExpenseRepository(client),
+        userRepo:     UserRepository(client),
+        importRepo:   ImportRepository(client),
+        insightsRepo: InsightsRepository(client),
       ),
       child: const BachatKaroApp(),
     ),
@@ -41,29 +45,19 @@ class BachatKaroApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = context.select<AppState, ThemeMode>(
-      (s) => s.themeMode,
-    );
-
-    // Update system UI overlay based on theme
+    // App is light-mode only — system overlay always uses dark icons.
     SystemChrome.setSystemUIOverlayStyle(
-      themeMode == ThemeMode.dark
-          ? const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.light,
-            )
-          : const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.dark,
-            ),
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
     );
 
     return MaterialApp(
       title: 'Bachat Karo',
       debugShowCheckedModeBanner: false,
-      themeMode: themeMode,
+      themeMode: ThemeMode.light,
       theme: _buildLightTheme(),
-      darkTheme: _buildDarkTheme(),
       home: const AuthGate(),
     );
   }
@@ -155,166 +149,4 @@ class BachatKaroApp extends StatelessWidget {
     );
   }
 
-  // ── Dark Theme ─────────────────────────────────────────────────────────────
-  // Palette extracted from the in-app design screenshots:
-  //   Background   #141920  deep navy-charcoal
-  //   Surface      #1D2535  lifted card bg
-  //   SurfaceVar   #252E42  inputs & chips
-  //   Primary      #2DCAAA  teal (buttons, active nav, highlights)
-  //   Accent       #39A7D6  sky blue
-  //   TextPrimary  #E8EDF8  near-white
-  //   TextSecondary #8594B0 muted blue-grey
-  //   Border       #2C3550
-
-  ThemeData _buildDarkTheme() {
-    const primary = Color(0xFF2DCAAA);
-    const background = Color(0xFF141920);
-    const surface = Color(0xFF1D2535);
-    const surfaceVariant = Color(0xFF252E42);
-    const textPrimary = Color(0xFFE8EDF8);
-    const textSecondary = Color(0xFF8594B0);
-    const border = Color(0xFF2C3550);
-    const divider = Color(0xFF242D42);
-    const onPrimary = Color(0xFF0A1A18);
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorScheme: const ColorScheme.dark(
-        primary: primary,
-        secondary: Color(0xFF39A7D6),
-        surface: surface,
-        onPrimary: onPrimary,
-        onSurface: textPrimary,
-        onSecondary: textPrimary,
-        surfaceContainerHighest: surfaceVariant,
-        outline: border,
-      ),
-      scaffoldBackgroundColor: background,
-      fontFamily: 'Inter',
-      appBarTheme: const AppBarTheme(
-        backgroundColor: background,
-        foregroundColor: textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        iconTheme: IconThemeData(color: textPrimary),
-        titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: onPrimary,
-          elevation: 0,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: surfaceVariant,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: border, width: 0.8),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primary, width: 1.5),
-        ),
-        hintStyle: const TextStyle(
-          color: textSecondary,
-          fontFamily: 'Inter',
-        ),
-        labelStyle: const TextStyle(
-          color: textSecondary,
-          fontFamily: 'Inter',
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      dividerTheme: const DividerThemeData(
-        color: divider,
-        thickness: 1,
-        space: 0,
-      ),
-      cardTheme: CardThemeData(
-        color: surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: border, width: 0.8),
-        ),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: primary,
-        unselectedItemColor: textSecondary,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: surfaceVariant,
-        selectedColor: primary.withAlpha(40),
-        side: const BorderSide(color: border),
-        labelStyle: const TextStyle(
-          color: textPrimary,
-          fontFamily: 'Inter',
-          fontSize: 13,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? primary : textSecondary,
-        ),
-        trackColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected)
-              ? primary.withAlpha(80)
-              : surfaceVariant,
-        ),
-      ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: primary,
-        linearTrackColor: surfaceVariant,
-      ),
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        displayMedium: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        displaySmall: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        headlineLarge: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        headlineMedium: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        headlineSmall: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        titleLarge: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        titleMedium: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        titleSmall: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        bodyLarge: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        bodyMedium: TextStyle(color: textPrimary, fontFamily: 'Inter'),
-        bodySmall: TextStyle(color: textSecondary, fontFamily: 'Inter'),
-        labelLarge: TextStyle(color: textSecondary, fontFamily: 'Inter'),
-        labelMedium: TextStyle(color: textSecondary, fontFamily: 'Inter'),
-        labelSmall: TextStyle(color: textSecondary, fontFamily: 'Inter'),
-      ),
-    );
-  }
 }

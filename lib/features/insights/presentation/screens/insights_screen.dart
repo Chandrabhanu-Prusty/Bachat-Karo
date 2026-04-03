@@ -11,8 +11,22 @@ import '../widgets/weekly_bar_chart.dart';
 import '../widgets/nudge_card.dart';
 import '../widgets/focus_donut_card.dart';
 
-class InsightsScreen extends StatelessWidget {
+class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
+
+  @override
+  State<InsightsScreen> createState() => _InsightsScreenState();
+}
+
+class _InsightsScreenState extends State<InsightsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch suggestions on first load (uses cache if fresh)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().fetchAiSuggestions();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +36,6 @@ class InsightsScreen extends StatelessWidget {
     final topCat = state.topCategory;
     final nudges = _buildNudges(state);
 
-    // Compute top category percentage
     final monthTotal = byCategory.values.fold(0.0, (a, b) => a + b);
     final topCatTotal = topCat != null ? (byCategory[topCat] ?? 0) : 0.0;
     final topCatPercent = monthTotal > 0
@@ -33,9 +46,10 @@ class InsightsScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          _buildSliverHeader(),
+          _buildSliverHeader(context),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: AppSpacing.xl),
@@ -55,7 +69,7 @@ class InsightsScreen extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xl),
                 _buildSubscriptionAuditBanner(),
                 const SizedBox(height: AppSpacing.xxl),
-                _buildAiAdvisorQuote(state),
+                _buildAiSuggestionsSection(state),
                 const SizedBox(height: 100),
               ]),
             ),
@@ -65,13 +79,21 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSliverHeader() {
+  Widget _buildSliverHeader(BuildContext context) {
     return SliverAppBar(
       backgroundColor: AppColors.background,
       elevation: 0,
       scrolledUnderElevation: 0,
       pinned: true,
       expandedHeight: 100,
+      actions: [
+        // Refresh AI suggestions button
+        IconButton(
+          icon: const Icon(Icons.refresh, color: AppColors.primary),
+          tooltip: 'Refresh AI suggestions',
+          onPressed: () => context.read<AppState>().refreshAiSuggestions(),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.only(
           left: AppSpacing.screenH,
@@ -189,45 +211,109 @@ class InsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAiAdvisorQuote(AppState state) {
-    final budgetFrac = state.budgetUsedFraction;
-    final quote = budgetFrac < 0.5
-        ? '"Great discipline! You\'re on track to save significantly this month. Keep going!"'
-        : budgetFrac < 0.85
-            ? '"You\'re using your budget well. A few mindful choices and you\'ll finish the month under budget."'
-            : '"You\'re close to your budget limit. Consider pausing non-essential spending for the rest of the month."';
+  Widget _buildAiSuggestionsSection(AppState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'AI Financial Advisor',
+          actionLabel: state.suggestionsLoading ? 'Loading...' : 'Refresh',
+          onAction: state.suggestionsLoading
+              ? null
+              : () => state.refreshAiSuggestions(),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Powered by Groq · Personalised to your spending data',
+          style: AppTextStyles.label,
+        ),
+        const SizedBox(height: AppSpacing.md),
 
+        if (state.suggestionsLoading) ...
+          List.generate(
+            3,
+            (_) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Container(
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
+          )
+        else if (state.aiSuggestions.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.auto_awesome_outlined,
+                  color: AppColors.textSecondary,
+                  size: 32,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Add more expenses to unlock AI suggestions',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          )
+        else
+          ...state.aiSuggestions.asMap().entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: _buildSuggestionCard(entry.key + 1, entry.value),
+                ),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildSuggestionCard(int index, String text) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            quote,
-            style: AppTextStyles.headingSmall.copyWith(
-              fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
-              height: 1.6,
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Center(
+              child: Text(
+                '$index',
+                style: AppTextStyles.label.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Container(
-                width: 30,
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.bodyMedium.copyWith(
                 height: 1.5,
-                color: AppColors.textSecondary,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'AI FINANCIAL ADVISOR',
-                style: AppTextStyles.label.copyWith(letterSpacing: 1.5),
-              ),
-            ],
+            ),
           ),
         ],
       ),

@@ -3,23 +3,31 @@ import '../../shared/models/models.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/expense/data/expense_repository.dart';
 import '../../features/account/data/user_repository.dart';
+import '../../features/import/data/import_repository.dart';
+import '../../features/insights/data/insights_repository.dart';
 
 /// Single source of truth for all in-memory app data.
 ///
 /// Acts as an optimistic cache in front of Supabase repositories.
 /// Screens NEVER touch repositories directly — all I/O goes through here.
 class AppState extends ChangeNotifier {
-  final AuthRepository    _authRepo;
-  final ExpenseRepository _expenseRepo;
-  final UserRepository    _userRepo;
+  final AuthRepository      _authRepo;
+  final ExpenseRepository   _expenseRepo;
+  final UserRepository      _userRepo;
+  final ImportRepository    _importRepo;
+  final InsightsRepository  _insightsRepo;
 
   AppState({
     required AuthRepository    authRepo,
     required ExpenseRepository expenseRepo,
     required UserRepository    userRepo,
-  })  : _authRepo    = authRepo,
-        _expenseRepo = expenseRepo,
-        _userRepo    = userRepo;
+    required ImportRepository  importRepo,
+    required InsightsRepository insightsRepo,
+  })  : _authRepo      = authRepo,
+        _expenseRepo   = expenseRepo,
+        _userRepo      = userRepo,
+        _importRepo    = importRepo,
+        _insightsRepo  = insightsRepo;
 
   // ── Loading / Error ───────────────────────────────────────────────────────
 
@@ -101,10 +109,11 @@ class AppState extends ChangeNotifier {
 
   /// Called by AuthGate on sign-out — wipes all in-memory data.
   void clearSession() {
-    _user       = null;
-    _expenses   = [];
+    _user           = null;
+    _expenses       = [];
     _importSessions = [];
-    _lastError  = null;
+    _aiSuggestions  = [];
+    _lastError      = null;
     notifyListeners();
   }
 
@@ -285,57 +294,108 @@ class AppState extends ChangeNotifier {
     await _userRepo.updateBudget(_user!.id, newBudget);
   }
 
-  // ── Import Sessions ───────────────────────────────────────────────────────
+  // ── Import (real AI flow) ─────────────────────────────────────────────────
 
   List<ImportSessionModel> _importSessions = [];
+  List<ImportSessionModel> get importSessions => List.unmodifiable(_importSessions);
 
-  List<ImportSessionModel> get importSessions =>
-      List.unmodifiable(_importSessions);
+  ImportRepository get importRepo => _importRepo;
 
-  /// Simulate a file import (placeholder until ImportRepository is built).
-  void simulateImport(String fileName) {
+  /// Called after the user confirms the preview screen.
+  /// Bulk-inserts selected [rows] and adds a session tile to the import list.
+  Future<void> confirmImport(List<ParsedExpenseRow> rows) async {
+    final selected = rows.where((r) => r.isSelected).toList();
+    if (selected.isEmpty) return;
+
+    await _importRepo.confirmImport(selected);
+
+    final uid = _user?.id ?? '';
     final now = DateTime.now();
-    if (_user == null) return;
-    final newExpenses = [
-      ExpenseModel(
-        id: '${now.millisecondsSinceEpoch}-1',
-        userId: _user!.id,
-        amount: 899,
-        description: 'Imported: Online Order',
-        date: now.subtract(const Duration(days: 2)),
-        category: ExpenseCategory.shopping,
-        source: 'import',
-      ),
-      ExpenseModel(
-        id: '${now.millisecondsSinceEpoch}-2',
-        userId: _user!.id,
-        amount: 250,
-        description: 'Imported: Auto Rickshaw',
-        date: now.subtract(const Duration(days: 3)),
-        category: ExpenseCategory.travel,
-        source: 'import',
-      ),
-      ExpenseModel(
-        id: '${now.millisecondsSinceEpoch}-3',
-        userId: _user!.id,
-        amount: 120,
-        description: 'Imported: Chai & Snacks',
-        date: now.subtract(const Duration(days: 4)),
-        category: ExpenseCategory.food,
-        source: 'import',
-      ),
-    ];
-    _expenses.addAll(newExpenses);
+
+    // Add to local expense cache so the calendar updates immediately
+    for (final row in selected) {
+      _expenses.add(row.toExpenseModel(uid));
+    }
+
+    // Add an import session tile
     _importSessions.insert(
       0,
       ImportSessionModel(
-        id: 'imp_${now.millisecondsSinceEpoch}',
-        fileName: fileName,
-        importedAt: now,
-        transactionCount: newExpenses.length,
-        status: ImportStatus.verified,
+        id:               'imp_${now.millisecondsSinceEpoch}',
+        fileName:         '${selected.length} transactions',
+        importedAt:       now,
+        transactionCount: selected.length,
+        status:           ImportStatus.verified,
       ),
     );
+
     notifyListeners();
   }
+
+  // ── AI Suggestions ────────────────────────────────────────────────────────
+
+  List<String> _aiSuggestions = [];
+  bool         _suggestionsLoading = false;
+
+  List<String> get aiSuggestions       => List.unmodifiable(_aiSuggestions);
+  bool         get suggestionsLoading  => _suggestionsLoading;
+
+  /// Fetches AI suggestions (uses 7-day cache, calls Groq only when stale).
+  Future<void> fetchAiSuggestions() async {
+    if (_suggestionsLoading) return;
+    _suggestionsLoading = true;
+    notifyListeners();
+
+    try {
+      final summaryData = {
+        'totalSpentThisMonth': monthTotal(DateTime.now()),
+        'monthlyBudget':       _user?.monthlyBudget ?? 0,
+        'budgetUsedPercent':   (budgetUsedFraction * 100).round(),
+        'byCategory':          currentMonthByCategory.map(
+          (cat, amount) => MapEntry(cat.label, amount.round()),
+        ),
+        'topCategory': topCategory?.label ?? 'none',
+        'weeklyTotals': weeklyTotals.map((v) => v.round()).toList(),
+      };
+
+      _aiSuggestions = await _insightsRepo.getSuggestions(
+        summaryData: summaryData,
+      );
+    } catch (e) {
+      _lastError = e.toString();
+    } finally {
+      _suggestionsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Force-refresh suggestions — bypasses 7-day cache.
+  Future<void> refreshAiSuggestions() async {
+    if (_suggestionsLoading) return;
+    _suggestionsLoading = true;
+    notifyListeners();
+
+    try {
+      final summaryData = {
+        'totalSpentThisMonth': monthTotal(DateTime.now()),
+        'monthlyBudget':       _user?.monthlyBudget ?? 0,
+        'budgetUsedPercent':   (budgetUsedFraction * 100).round(),
+        'byCategory':          currentMonthByCategory.map(
+          (cat, amount) => MapEntry(cat.label, amount.round()),
+        ),
+        'topCategory': topCategory?.label ?? 'none',
+        'weeklyTotals': weeklyTotals.map((v) => v.round()).toList(),
+      };
+
+      _aiSuggestions = await _insightsRepo.refreshSuggestions(
+        summaryData: summaryData,
+      );
+    } catch (e) {
+      _lastError = e.toString();
+    } finally {
+      _suggestionsLoading = false;
+      notifyListeners();
+    }
+  }
 }
+

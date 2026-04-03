@@ -225,31 +225,6 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          // ── Dark / Light Theme toggle ────────────────────────────────────
-          PreferenceRow(
-            icon: state.isDark ? Icons.dark_mode : Icons.light_mode_outlined,
-            label: 'Theme',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.isDark ? 'Dark' : 'Light',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Switch(
-                  value: state.isDark,
-                  onChanged: (_) => state.toggleTheme(),
-                  activeThumbColor: const Color(0xFF2DCAAA),  // Screenshot teal
-                  activeTrackColor: const Color(0xFF1A3048),  // Dark blue track
-                  inactiveThumbColor: AppColors.primary,
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: AppSpacing.xl, color: AppColors.divider),
           // ── Daily reminder time ──────────────────────────────────────────
           PreferenceRow(
             icon: Icons.alarm_outlined,

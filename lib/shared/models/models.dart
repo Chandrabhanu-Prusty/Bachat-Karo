@@ -308,3 +308,40 @@ class UserModel {
       );
 }
 
+// ─── Parsed Expense Row (from AI import) ─────────────────────────────────────
+
+/// A single expense row extracted by the Groq LLM from an uploaded file or
+/// pasted text. Shown in the import preview screen before final confirmation.
+class ParsedExpenseRow {
+  final String date;          // YYYY-MM-DD
+  final double amount;
+  final String description;
+  final ExpenseCategory category;
+  bool isSelected;            // user can deselect rows in the preview
+
+  ParsedExpenseRow({
+    required this.date,
+    required this.amount,
+    required this.description,
+    required this.category,
+    this.isSelected = true,
+  });
+
+  factory ParsedExpenseRow.fromJson(Map<String, dynamic> j) => ParsedExpenseRow(
+        date:        j['date']        as String,
+        amount:      (j['amount']     as num).toDouble(),
+        description: j['description'] as String,
+        category:    ExpenseCategory.fromDb(j['category'] as String? ?? 'others'),
+      );
+
+  /// Converts this row into an [ExpenseModel] ready for insertion.
+  ExpenseModel toExpenseModel(String userId) => ExpenseModel(
+        id:          '',
+        userId:      userId,
+        amount:      amount,
+        description: description,
+        date:        DateTime.parse(date),
+        category:    category,
+        source:      'import',
+      );
+}
