@@ -22,7 +22,7 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    final user  = state.user;
+    final user = state.user;
 
     // Show loading spinner while user profile is loading
     if (user == null) {
@@ -47,8 +47,8 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         child: Column(
           children: [
-            _buildProfileHeader(user.displayName, user.email,
-                user.isPremium, user.joinedAt),
+            _buildProfileHeader(
+                user.displayName, user.email, user.isPremium, user.joinedAt),
             const SizedBox(height: AppSpacing.xxl),
             _buildFinancialSettings(context, state, user),
             const SizedBox(height: AppSpacing.lg),
@@ -71,17 +71,13 @@ class _AccountScreenState extends State<AccountScreen> {
 
   // ── Profile Header ────────────────────────────────────────────────────────
 
-  Widget _buildProfileHeader(String displayName, String email,
-      bool isPremium, DateTime joinedAt) {
+  Widget _buildProfileHeader(
+      String displayName, String email, bool isPremium, DateTime joinedAt) {
     return Column(
       children: [
         ProfileAvatar(
           imageUrl: null,
-          initials: displayName
-              .split(' ')
-              .map((w) => w[0])
-              .take(2)
-              .join(),
+          initials: displayName.split(' ').map((w) => w[0]).take(2).join(),
           onEditTap: () {},
         ),
         const SizedBox(height: AppSpacing.md),
@@ -117,7 +113,8 @@ class _AccountScreenState extends State<AccountScreen> {
 
   // ── Financial Settings Card ───────────────────────────────────────────────
 
-  Widget _buildFinancialSettings(BuildContext context, AppState state, UserModel user) {
+  Widget _buildFinancialSettings(
+      BuildContext context, AppState state, UserModel user) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,7 +254,7 @@ class _AccountScreenState extends State<AccountScreen> {
             trailing: Switch(
               value: notificationsEnabled,
               onChanged: (val) => state.updateNotifications(val),
-              activeThumbColor: AppColors.primary,
+              activeColor: AppColors.primary,
             ),
           ),
         ],
@@ -365,7 +362,8 @@ class _AccountScreenState extends State<AccountScreen> {
     if (picked != null) state.updateReminderTime(picked);
   }
 
-  Future<void> _editBudget(BuildContext context, AppState state, UserModel user) async {
+  Future<void> _editBudget(
+      BuildContext context, AppState state, UserModel user) async {
     final controller = TextEditingController(
       text: user.monthlyBudget.toStringAsFixed(0),
     );
@@ -412,8 +410,8 @@ class _AccountScreenState extends State<AccountScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Log out?'),
-        content: const Text(
-            'You will need to sign in again to access your data.'),
+        content:
+            const Text('You will need to sign in again to access your data.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

@@ -8,6 +8,12 @@
 
 Bachat Karo (Hindi: *"Save Money"*) is not just an expense tracker—it's an AI-first financial companion. It allows users to manage expenses manually or import them from messy real-world sources like bank SMS, WhatsApp notes, or Excel sheets using advanced LLM-based extraction.
 
+## 🎥 Demo Video
+
+<video controls width="100%" src="Bachat_Karo_WalkThrough.mp4">
+  Your browser does not support the video tag.
+</video>
+
 ---
 
 ## 🚀 Key AI Features
