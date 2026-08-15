@@ -46,5 +46,21 @@ app.*.map.json
 
 # Supabase and AI secrets
 .env
+.env.*
+.env.local
+*.env
+.envrc
+GROQ_API_KEY
+GROK_API_KEY
+OPENAI_API_KEY
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+**/GROQ_API_KEY
+**/GROK_API_KEY
+**/OPENAI_API_KEY
+**/SUPABASE_URL
+**/SUPABASE_ANON_KEY
+**/SUPABASE_SERVICE_ROLE_KEY
 supabase/.temp/
 lib/core/supabase/supabase_config.dart
