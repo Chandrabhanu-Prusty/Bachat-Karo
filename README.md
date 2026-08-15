@@ -10,9 +10,9 @@ Bachat Karo (Hindi: *"Save Money"*) is not just an expense tracker—it's an AI-
 
 ## 🎥 Demo Video
 
-<video controls width="100%" src="Bachat_Karo_WalkThrough.mp4">
-  Your browser does not support the video tag.
-</video>
+GitHub does not reliably render local MP4 files inline in README files, so this uses a clickable thumbnail that opens the video directly.
+
+[![Watch demo video](Bachat_Karo_Thumbnail.svg)](https://raw.githubusercontent.com/Chandrabhanu-Prusty/Bachat-Karo/main/bachat_karo/Bachat_Karo_WalkThrough.mp4)
 
 ---
 
